@@ -1,0 +1,21 @@
+{
+  "name": "elitea-todos-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Enterprise-grade todo management template repository",
+  "scripts": {
+    "start": "npm --prefix backend run dev",
+    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run start\"",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "npm --prefix backend run test",
+    "test:frontend": "npm --prefix frontend run test -- --watch=false",
+    "test:integration": "npm --prefix backend run test:integration",
+    "test:ui": "echo 'Playwright tests are scaffolded in docs and can be wired later'",
+    "coverage": "npm --prefix backend run coverage",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.1"
+  }
+}
