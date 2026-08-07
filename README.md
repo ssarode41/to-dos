@@ -1,7 +1,7 @@
 # EliteA Todos App
 
 EliteA Todos App is a production-style template repository for a task management platform that demonstrates enterprise development practices while remaining compact enough for AI-assisted analysis.
-
+Application Name: to-dos
 ## Project Overview
 
 This repository provides a small but realistic full-stack application template with:
