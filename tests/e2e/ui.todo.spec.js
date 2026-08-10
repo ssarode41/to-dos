@@ -8,5 +8,6 @@ test('creates a todo from the dashboard UI', async ({ page }) => {
   await todoPage.goto();
   await todoPage.createTodo();
 
-  await expect(page.getByText(testData.ui.description)).toBeVisible();
+  // Data-required assertion no hardcodes
+  await expect(page.getByText(testData.ui.title)).toBeVisible();
 });
