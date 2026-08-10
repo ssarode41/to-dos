@@ -1,0 +1,10 @@
+{
+  "ui": {
+    "title": "Playwright UI todo",
+    "description": "Created by Playwright UI test"
+  },
+  "api": {
+    "title": "Playwright API todo",
+    "description": "Created by Playwright API test"
+  }
+}
