@@ -2,9 +2,9 @@ const todoRepository = require('../repositories/todo.repository');
 const logger = require('../config/logger');
 
 class TodoService {
-  async listTodos() {
+  async listTodos(query = {}) {
     logger.info('Listing todos');
-    return todoRepository.list();
+    return todoRepository.list(query);
   }
 
   async getTodoById(id) {
