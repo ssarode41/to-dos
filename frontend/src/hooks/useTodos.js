@@ -1,15 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getTodos, createTodo, updateTodo, deleteTodo, completeTodo } from '../api/todoApi';
 
-export function useTodos() {
+function getTodoId(todo) {
+  return todo?._id || todo?.id;
+}
+
+export function useTodos(query = {}) {
+  const { q, completed, sort } = query;
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getTodos();
+      const params = {};
+      if (typeof q === 'string' && q.trim()) params.q = q.trim();
+      if (typeof completed === 'boolean') params.completed = completed;
+      if (typeof sort === 'string' && sort.trim()) params.sort = sort.trim();
+
+      const response = await getTodos(params);
       setTodos(response.data || []);
       setError('');
     } catch (err) {
@@ -17,11 +27,11 @@ export function useTodos() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [q, completed, sort]);
 
   useEffect(() => {
     fetchTodos();
-  }, []);
+  }, [fetchTodos]);
 
   const addTodo = async (payload) => {
     try {
@@ -37,10 +47,20 @@ export function useTodos() {
   const editTodo = async (id, payload) => {
     try {
       const response = await updateTodo(id, payload);
-      setTodos((prev) => prev.map((todo) => (todo._id === id ? response.data : todo)));
-      return response.data;
+      const updated = response.data;
+      const updatedId = getTodoId(updated) || id;
+
+      setTodos((prev) =>
+        prev.map((todo) => (getTodoId(todo) === updatedId ? updated : todo))
+      );
+      return updated;
     } catch (err) {
-      setError('Unable to update todo');
+      const status = err.response?.status;
+      if (status === 404) {
+        setError('Todo not found – it may have been deleted.');
+      } else {
+        setError('Unable to update todo');
+      }
       return null;
     }
   };
@@ -48,7 +68,7 @@ export function useTodos() {
   const removeTodo = async (id) => {
     try {
       await deleteTodo(id);
-      setTodos((prev) => prev.filter((todo) => todo._id !== id));
+      setTodos((prev) => prev.filter((todo) => getTodoId(todo) !== id));
       return true;
     } catch (err) {
       setError('Unable to delete todo');
@@ -59,8 +79,13 @@ export function useTodos() {
   const markComplete = async (id) => {
     try {
       const response = await completeTodo(id);
-      setTodos((prev) => prev.map((todo) => (todo._id === id ? response.data : todo)));
-      return response.data;
+      const updated = response.data;
+      const updatedId = getTodoId(updated) || id;
+
+      setTodos((prev) =>
+        prev.map((todo) => (getTodoId(todo) === updatedId ? updated : todo))
+      );
+      return updated;
     } catch (err) {
       setError('Unable to complete todo');
       return null;
