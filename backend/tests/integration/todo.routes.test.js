@@ -21,12 +21,25 @@ describe('Todo routes', () => {
     expect(response.body.service).toBe('elitea-todos-backend');
   });
 
-  it('lists todos', async () => {
+  it('lists todos'), async () => {
     todoService.listTodos.mockResolvedValue([{ title: 'Plan release' }]);
 
     const response = await request(app).get('/api/v1/todos');
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
+    expect(todoService.listTodos).toHaveBeenCalledWith({});
+  });
+
+  it('passes query params to service for search/filter/sort', async () => {
+    todoService.listTodos.mockResolvedValue([]);
+
+    await request(app).get('/api/v1/todos?q=ship&completed=true&sort=-createdDate');
+
+    expect(todoService.listTodos).toHaveBeenCalledWith({
+      q: 'ship',
+      completed: 'true',
+      sort: '-createdDate'
+    });
   });
 });
