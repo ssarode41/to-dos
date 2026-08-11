@@ -1,10 +1,13 @@
 const Joi = require('joi');
 
-function validate(schema) {
+function validate(schema, source = 'body') {
   return (req, res, next) => {
-    const { error } = schema.validate(req.body, { abortEarly: false });
+    const data = source === 'query' ? req.query : req.body;
+    const { error } = schema.validate(data, { abortEarly: false, convert: true });
     if (error) {
-      return res.status(400).json({ message: 'Validation failed', details: error.details.map((detail) => detail.message) });
+      return res
+        .status(400)
+        .json({ message: 'Validation failed', details: error.details.map((detail) => detail.message) });
     }
     return next();
   };
