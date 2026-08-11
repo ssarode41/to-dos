@@ -4,7 +4,8 @@ jest.mock('../../src/services/todo.service', () => ({
   createTodo: jest.fn(),
   updateTodo: jest.fn(),
   deleteTodo: jest.fn(),
-  completeTodo: jest.fn()
+  completeTodo: jest.fn(),
+  reopenTodo: jest.fn()
 }));
 
 const request = require('supertest');
@@ -28,5 +29,21 @@ describe('Todo routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
+  });
+
+  it('passes query params to listTodos', async () => {
+    todoService.listTodos.mockResolvedValue([]);
+
+    const response = await request(app).get('/api/v1/todos?q=ship&completed=true');
+
+    expect(response.status).toBe(200);
+    expect(todoService.listTodos).toHaveBeenCalledWith(expect.objectContaining({ q: 'ship', completed: true }));
+  });
+
+  it('returns 400 when completed is not a boolean', async () => {
+    const response = await request(app).get('/api/v1/todos?completed=notabool');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('Validation failed');
   });
 });
