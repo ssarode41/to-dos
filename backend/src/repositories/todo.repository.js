@@ -28,16 +28,116 @@ class TodoRepository {
     };
   }
 
-  async list(query = {}) {
-    if (!this.isDatabaseReady()) {
-      const filter = { ...query };
-      return this.fallbackTodos
-        .filter((todo) => Object.entries(filter).every(([key, value]) => todo[key] === value))
-        .sort((left, right) => right.createdDate - left.createdDate);
+  buildListFilter(query = {}) {
+    const filter = {};
+
+    if (query.q) {
+      filter.title = { $regex: query.q, $options: 'i' };
     }
 
-    const filter = { ...query };
-    return Todo.find(filter).sort({ createdDate: -1 });
+    if (typeof query.completed === 'boolean') {
+      filter.completed = query.completed;
+    }
+
+    if (query.priority) {
+      filter.priority = query.priority;
+    }
+
+    if (query.category) {
+      filter.category = query.category;
+    }
+
+    return filter;
+  }
+
+  applyFallbackFilter(todos, filter = {}) {
+    const normalize = (value) => (value === undefined || value === null ? '' : String(value));
+
+    return todos.filter((todo) => {
+      if (filter.title && filter.title.$regex) {
+        const pattern = String(filter.title.$regex).toLowerCase();
+        const title = normalize(todo.title).toLowerCase();
+        if (!title.includes(pattern)) {
+          return false;
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(filter, 'completed')) {
+        if (Boolean(todo.completed) !== Boolean(filter.completed)) {
+          return false;
+        }
+      }
+
+      if (filter.priority && normalize(todo.priority) !== normalize(filter.priority)) {
+        return false;
+      }
+
+      if (filter.category && normalize(todo.category) !== normalize(filter.category)) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  toPaginationResult({ items, page, limit, total }) {
+    return { items, page, limit, total };
+  }
+
+  normalizePagination(query = {}) {
+    const hasPagination = query.page !== undefined || query.limit !== undefined;
+    if (!hasPagination) {
+      return { shouldPaginate: false };
+    }
+
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+
+    const normalizedPage = page > 0 ? page : 1;
+    const normalizedLimit = limit > 0 ? limit : 10;
+
+    return { shouldPaginate: true, page: normalizedPage, limit: normalizedLimit };
+  }
+
+  async list(query = {}) {
+    const filter = this.buildListFilter(query);
+    const pagination = this.normalizePagination(query);
+
+    if (!this.isDatabaseReady()) {
+      const sorted = this.applyFallbackFilter(this.fallbackTodos, filter).sort(
+        (left, right) => right.createdDate - left.createdDate
+      );
+
+      if (!pagination.shouldPaginate) {
+        return sorted;
+      }
+
+      const start = (pagination.page - 1) * pagination.limit;
+      const items = sorted.slice(start, start + pagination.limit);
+      return this.toPaginationResult({
+        items,
+        page: pagination.page,
+        limit: pagination.limit,
+        total: sorted.length
+      });
+    }
+
+    if (!pagination.shouldPaginate) {
+      return Todo.find(filter).sort({ createdDate: -1 });
+    }
+
+    const skip = (pagination.page - 1) * pagination.limit;
+    const [items, total] = await Promise.all([
+      Todo.find(filter).sort({ createdDate: -1 }).skip(skip).limit(pagination.limit),
+      Todo.countDocuments(filter)
+    ]);
+
+    return this.toPaginationResult({
+      items,
+      page: pagination.page,
+      limit: pagination.limit,
+      total
+    });
   }
 
   async getById(id) {
@@ -85,16 +185,18 @@ class TodoRepository {
         return null;
       }
 
+
       const [deletedTodo] = this.fallbackTodos.splice(index, 1);
       return deletedTodo;
     }
+
 
     return Todo.findByIdAndDelete(id);
   }
 
   async complete(id) {
     if (!this.isDatabaseReady()) {
-      const index = this.fallbackTodos.findIndex((todo) => todo._id === id);
+      const index = this.fallbackDodos.findIndex((todo) => todo._id === id);
       if (index === -1) {
         return null;
       }
