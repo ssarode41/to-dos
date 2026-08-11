@@ -1,10 +1,14 @@
 const todoRepository = require('../repositories/todo.repository');
 const logger = require('../config/logger');
+const { buildFilterFromQuery, parseSort } = require('../utils/todoQuery');
 
 class TodoService {
-  async listTodos() {
-    logger.info('Listing todos');
-    return todoRepository.list();
+  async listTodos(query = {}) {
+    const filter = buildFilterFromQuery(query);
+    const sort = parseSort(query.sort);
+
+    logger.info('Listing todos', { query, sort });
+    return todoRepository.list({ filter, sort });
   }
 
   async getTodoById(id) {
