@@ -1,7 +1,17 @@
 {
   "ui": {
     "title": "Playwright UI todo",
-    "description": "Created by Playwright UI test"
+    "description": "Created by Playwright UI test",
+    "priority": "HIGH",
+    "category": "WORK",
+    "dueDate": "2030-01-01"
+  },
+  "edit": {
+    "title": "Playwright UI todo (edited)",
+    "description": "Updated by Playwright UI test",
+    "priority": "LOW",
+    "category": "HOME",
+    "dueDate": "2030-02-02"
   },
   "api": {
     "title": "Playwright API todo",
