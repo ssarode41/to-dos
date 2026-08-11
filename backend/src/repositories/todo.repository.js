@@ -20,6 +20,7 @@ class TodoRepository {
       priority: payload.priority || 'MEDIUM',
       status: payload.status || 'OPEN',
       category: payload.category || 'GENERAL',
+      dueDate: payload.dueDate || null,
       completed: Boolean(payload.completed),
       createdBy: payload.createdBy || 'admin',
       createdDate: now,
@@ -28,16 +29,54 @@ class TodoRepository {
     };
   }
 
-  async list(query = {}) {
+  static filterMatches(todo, filter) {
+    return Object.entries(filter).every(([key, value]) => {
+      if (key === '$or' && Array.isArray(value)) {
+        return value.some((clause) => {
+          const [field] = Object.keys(clause);
+          if (!field) return true;
+          const condition = clause[field];
+          if (condition && typeof condition.$regex === 'string') {
+            const regexp = new RegExp(condition.$regex, condition.$options || 'i');
+            return regexp.test(String(todo[field] || ''));
+          }
+          return true;
+        });
+      }
+
+      return todo[key] === value;
+    });
+  }
+
+  static buildComparator(sort) {
+    const [field] = Object.keys(sort || {});
+    const direction = field ? sort[field] : -1;
+    const effectiveField = field || 'createdDate';
+
+    return (left, right) => {
+      const leftValue = left[effectiveField];
+      const rightValue = right[effectiveField];
+
+      if (leftValue == null && rightValue == null) return 0;
+      if (leftValue == null) return 1;
+      if (rightValue == null) return -1;
+
+      if (leftValue > rightValue) return direction;
+      if (leftValue < rightValue) return -direction;
+      return 0;
+    };
+  }
+
+  async list(options = {}) {
+    const { filter = {}, sort = { createdDate: -1 } } = options;
+
     if (!this.isDatabaseReady()) {
-      const filter = { ...query };
       return this.fallbackTodos
-        .filter((todo) => Object.entries(filter).every(([key, value]) => todo[key] === value))
-        .sort((left, right) => right.createdDate - left.createdDate);
+        .filter((todo) => TodoRepository.filterMatches(todo, filter))
+        .sort(TodoRepository.buildComparator(sort));
     }
 
-    const filter = { ...query };
-    return Todo.find(filter).sort({ createdDate: -1 });
+    return Todo.find(filter).sort(sort);
   }
 
   async getById(id) {
@@ -80,12 +119,14 @@ class TodoRepository {
 
   async delete(id) {
     if (!this.isDatabaseReady()) {
-      const index = this.fallbackTodos.findIndex((todo) => todo._id === id);
+      const index = this.fallbackTodos
+        .findIndex((todo) => todo._id === id);
       if (index === -1) {
         return null;
       }
 
-      const [deletedTodo] = this.fallbackTodos.splice(index, 1);
+      const [deletedTodo] = this.fallbackTodos
+        .splice(index, 1);
       return deletedTodo;
     }
 
@@ -94,7 +135,8 @@ class TodoRepository {
 
   async complete(id) {
     if (!this.isDatabaseReady()) {
-      const index = this.fallbackTodos.findIndex((todo) => todo._id === id);
+      const index = this.fallbackTodos
+        .findIndex((todo) => todo._id === id);
       if (index === -1) {
         return null;
       }
@@ -109,7 +151,11 @@ class TodoRepository {
       return updatedTodo;
     }
 
-    return Todo.findByIdAndUpdate(id, { completed: true, status: 'DONE', updatedDate: new Date() }, { new: true });
+    return Todo.findByIdAndUpdate(
+      id,
+      { completed: true, status: 'DONE', updatedDate: new Date() },
+      { new: true }
+    );
   }
 }
 
