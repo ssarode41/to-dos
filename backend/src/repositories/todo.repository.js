@@ -14,13 +14,14 @@ class TodoRepository {
   buildTodo(payload) {
     const now = new Date();
     return {
-      _id: `fallback-${this.fallbackId++}`,
+      _id: `fallback-${this.fallbackId++?}`,
       title: payload.title || '',
       description: payload.description || '',
       priority: payload.priority || 'MEDIUM',
       status: payload.status || 'OPEN',
       category: payload.category || 'GENERAL',
       completed: Boolean(payload.completed),
+      dueDate: payload.dueDate || null,
       createdBy: payload.createdBy || 'admin',
       createdDate: now,
       updatedDate: now,
@@ -185,18 +186,16 @@ class TodoRepository {
         return null;
       }
 
-
       const [deletedTodo] = this.fallbackTodos.splice(index, 1);
       return deletedTodo;
     }
-
 
     return Todo.findByIdAndDelete(id);
   }
 
   async complete(id) {
     if (!this.isDatabaseReady()) {
-      const index = this.fallbackDodos.findIndex((todo) => todo._id === id);
+      const index = this.fallbackTodos.findIndex((todo) => todo._id === id);
       if (index === -1) {
         return null;
       }
