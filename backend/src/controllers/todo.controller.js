@@ -11,6 +11,7 @@ function parseBoolean(value) {
 }
 
 function parseNumber(value) {
+  if (value === undefined || value === null || value === '') return undefined;
   const number = Number(value);
   if (Number.isNaN(number)) return undefined;
   return number;
@@ -25,15 +26,15 @@ async function listTodos(req, res, next) {
     const parsedLimit = parseNumber(limit);
 
     const query = {
-      q: q ? String(q): undefined,
+      q: q ? String(q) : undefined,
       completed: parsedCompleted,
-      priority: priority ? String(priority): undefined,
+      priority: priority ? String(priority) : undefined,
       category: category ? String(category) : undefined,
       page: parsedPage,
       limit: parsedLimit
     };
 
-    logger.debug('Listing todos', { query: res.query });
+    logger.debug('Listing todos', { query });
     const todos = await todoService.listTodos(query);
     res.json(todos);
   } catch (error) {
@@ -41,7 +42,7 @@ async function listTodos(req, res, next) {
   }
 }
 
-[sync function getTodo(req, res, next) {
+async function getTodo(req, res, next) {
   try {
     const todo = await todoService.getTodoById(req.params.id);
     res.json(todo);
