@@ -3,7 +3,7 @@ const logger = require('../config/logger');
 
 async function listTodos(req, res, next) {
   try {
-    const todos = await todoService.listTodos();
+    const todos = await todoService.listTodos(req.query);
     res.json(todos);
   } catch (error) {
     next(error);
@@ -56,11 +56,21 @@ async function completeTodo(req, res, next) {
   }
 }
 
+async function reopenTodo(req, res, next) {
+  try {
+    const todo = await todoService.reopenTodo(req.params.id);
+    res.json(todo);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   listTodos,
   getTodo,
   createTodo,
   updateTodo,
   deleteTodo,
-  completeTodo
+  completeTodo,
+  reopenTodo
 };
