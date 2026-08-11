@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Todo = require('../models/Todo');
+const { buildTodoFilter } = require('./todoFilters');
 
 class TodoRepository {
   constructor() {
@@ -29,14 +30,23 @@ class TodoRepository {
   }
 
   async list(query = {}) {
+    const filter = buildTodoFilter(query || {});
+
     if (!this.isDatabaseReady()) {
-      const filter = { ...query };
       return this.fallbackTodos
-        .filter((todo) => Object.entries(filter).every(([key, value]) => todo[key] === value))
+        .filter((todo) => {
+          if (filter.title && filter.title.$regex) {
+            const needle = String(filter.title.$regex).toLowerCase();
+            const haystack = String(todo.title || '').toLowerCase();
+            if (!haystack.includes(needle) ) return false;
+          }
+
+          const { title, ...rest } = filter;
+          return Object.entries(rest).every(([key, value]) => todo[key] === value);
+        })
         .sort((left, right) => right.createdDate - left.createdDate);
     }
 
-    const filter = { ...query };
     return Todo.find(filter).sort({ createdDate: -1 });
   }
 
@@ -110,6 +120,26 @@ class TodoRepository {
     }
 
     return Todo.findByIdAndUpdate(id, { completed: true, status: 'DONE', updatedDate: new Date() }, { new: true });
+  }
+
+  async reopen(id) {
+    if (!this.isDatabaseReady()) {
+      const index = this.fallbackTodos.findIndex((todo) => todo._id === id);
+      if (index === -1) {
+        return null;
+      }
+
+      const updatedTodo = {
+        ...this.fallbackTodos[index],
+        completed: false,
+        status: 'OPEN',
+        updatedDate: new Date()
+      };
+      this.fallbackTodos[index] = updatedTodo;
+      return updatedTodo;
+    }
+
+    return Todo.findByIdAndUpdate(id, { completed: false, status: 'OPEN', updatedDate: new Date() }, { new: true });
   }
 }
 
