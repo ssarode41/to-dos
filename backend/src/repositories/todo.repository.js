@@ -75,7 +75,7 @@ class TodoRepository {
       return updatedTodo;
     }
 
-    return Todo.findByIdAndUpdate(id, payload, { new: true });
+    return Todo.findByIdAndUpdate(id, { ...payload, updatedDate: new Date() }, { new: true });
   }
 
   async delete(id) {
