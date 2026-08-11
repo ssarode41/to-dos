@@ -21,7 +21,7 @@ describe('Todo routes', () => {
     expect(response.body.service).toBe('elitea-todos-backend');
   });
 
-  it('lists todos'), async () => {
+  it('lists todos', async () => {
     todoService.listTodos.mockResolvedValue([{ title: 'Plan release' }]);
 
     const response = await request(app).get('/api/v1/todos');
