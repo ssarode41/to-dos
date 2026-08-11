@@ -6,9 +6,10 @@ import FilterBar from '../components/FilterBar';
 import { useTodos } from '../hooks/useTodos';
 
 function Dashboard() {
-  const { todos, loading, error, addTodo, removeTodo, markComplete } = useTodos();
+  const { todos, loading, error, addTodo, removeTodo, markComplete, editTodo } = useTodos();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [editingTodo, setEditingTodo] = useState(null);
 
   const visibleTodos = useMemo(() => {
     return todos.filter((todo) => {
@@ -18,10 +19,23 @@ function Dashboard() {
     });
   }, [filter, query, todos]);
 
+  const handleEdit = async (payload) => {
+    await editTodo(editingTodo._id || editingTodo.id, payload);
+    setEditingTodo(null);
+  };
+
   return (
     <div className="grid two">
       <div className="grid">
-        <TodoForm onSubmit={addTodo} />
+        {editingTodo ? (
+          <TodoForm
+            initialValues={editingTodo}
+            onSubmit={handleEdit}
+            onCancel={() => setEditingTodo(null)}
+          />
+        ) : (
+          <TodoForm onSubmit={addTodo} />
+        )}
         <div className="panel">
           <div className="row">
             <SearchBar value={query} onChange={setQuery} />
@@ -33,7 +47,16 @@ function Dashboard() {
         <div className="panel">
           <h2>Todo dashboard</h2>
           {error && <p>{error}</p>}
-          {loading ? <p>Loading...</p> : <TodoList todos={visibleTodos} onComplete={markComplete} onDelete={removeTodo} />}
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            <TodoList
+              todos={visibleTodos}
+              onComplete={markComplete}
+              onDelete={removeTodo}
+              onEdit={setEditingTodo}
+            />
+          )}
         </div>
       </div>
     </div>
