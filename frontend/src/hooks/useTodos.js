@@ -1,27 +1,38 @@
-import { useEffect, useState } from 'react';
-import { getTodos, createTodo, updateTodo, deleteTodo, completeTodo } from '../api/todoApi';
+import { useCallback, useEffect, useState } from 'react';
+import { getTodos, createTodo, updateTodo, deleteTodo, completeTodo, reopenTodo } from '../api/todoApi';
 
-export function useTodos() {
+export function useTodos(initialParams = {}) {
   const [todos, setTodos] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchTodos = async () => {
-    setLoading(true);
-    try {
-      const response = await getTodos();
-      setTodos(response.data || []);
-      setError('');
-    } catch (err) {
-      setError('Unable to load todos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchTodos = useCallback(
+    async (params = initialParams) => {
+      setLoading(true);
+      try {
+        const response = await getTodos(params);
+        const body = response.data;
+        if (body && body.data !== undefined) {
+          setTodos(body.data);
+          setPagination(body.pagination || null);
+        } else {
+          setTodos(body || []);
+          setPagination(null);
+        }
+        setError('');
+      } catch (err) {
+        setError('Unable to load todos');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
-    fetchTodos();
-  }, []);
+    fetchTodos(initialParams);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addTodo = async (payload) => {
     try {
@@ -67,5 +78,16 @@ export function useTodos() {
     }
   };
 
-  return { todos, loading, error, addTodo, editTodo, removeTodo, markComplete, refresh: fetchTodos };
+  const markReopen = async (id) => {
+    try {
+      const response = await reopenTodo(id);
+      setTodos((prev) => prev.map((todo) => (todo._id === id ? response.data : todo)));
+      return response.data;
+    } catch (err) {
+      setError('Unable to reopen todo');
+      return null;
+    }
+  };
+
+  return { todos, pagination, loading, error, addTodo, editTodo, removeTodo, markComplete, markReopen, refresh: fetchTodos };
 }

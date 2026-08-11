@@ -22,4 +22,17 @@ const updateTodoSchema = Joi.object({
   createdBy: Joi.string().optional()
 });
 
-module.exports = { createTodoSchema, updateTodoSchema };
+const ALLOWED_SORT_FIELDS = ['createdDate', 'updatedDate', 'dueDate', 'title', 'priority'];
+
+const listTodosQuerySchema = Joi.object({
+  status: Joi.string().valid('OPEN', 'IN_PROGRESS', 'DONE').optional(),
+  priority: Joi.string().valid('LOW', 'MEDIUM', 'HIGH').optional(),
+  category: Joi.string().optional(),
+  q: Joi.string().max(200).optional(),
+  sortBy: Joi.string().valid(...ALLOWED_SORT_FIELDS).optional(),
+  sortOrder: Joi.string().valid('asc', 'desc').optional(),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional()
+});
+
+module.exports = { createTodoSchema, updateTodoSchema, listTodosQuerySchema };
