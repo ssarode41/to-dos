@@ -2,9 +2,9 @@ const todoRepository = require('../repositories/todo.repository');
 const logger = require('../config/logger');
 
 class TodoService {
-  async listTodos() {
+  async listTodos(query = {}) {
     logger.info('Listing todos');
-    return todoRepository.list();
+    return todoRepository.list(query);
   }
 
   async getTodoById(id) {
@@ -43,6 +43,16 @@ class TodoService {
 
   async completeTodo(id) {
     const todo = await todoRepository.complete(id);
+    if (!todo) {
+      const error = new Error('Todo not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    return todo;
+  }
+
+  async reopenTodo(id) {
+    const todo = await todoRepository.reopen(id);
     if (!todo) {
       const error = new Error('Todo not found');
       error.statusCode = 404;
