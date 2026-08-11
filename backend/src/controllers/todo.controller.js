@@ -3,8 +3,9 @@ const logger = require('../config/logger');
 
 async function listTodos(req, res, next) {
   try {
-    const todos = await todoService.listTodos();
-    res.json(todos);
+    const { q, completed, status, page, limit, sort, meta } = req.query;
+    const result = await todoService.listTodos({ q, completed, status, page, limit, sort, meta });
+    res.json(result);
   } catch (error) {
     next(error);
   }

@@ -2,9 +2,16 @@ const todoRepository = require('../repositories/todo.repository');
 const logger = require('../config/logger');
 
 class TodoService {
-  async listTodos() {
-    logger.info('Listing todos');
-    return todoRepository.list();
+  async listTodos(params = {}) {
+    logger.info('Listing todos', { params });
+    const { meta, ...repoParams } = params;
+    const { items, total } = await todoRepository.list(repoParams);
+    if (meta === 'true' || meta === true) {
+      const page = parseInt(repoParams.page, 10) || 1;
+      const limit = Math.min(parseInt(repoParams.limit, 10) || 20, 100);
+      return { items, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
+    }
+    return items;
   }
 
   async getTodoById(id) {

@@ -15,7 +15,7 @@ describe('TodoService', () => {
 
   it('returns todos from the repository', async () => {
     const todos = [{ id: '1', title: 'Write tests' }];
-    todoRepository.list.mockResolvedValue(todos);
+    todoRepository.list.mockResolvedValue({ items: todos, total: 1 });
 
     const result = await todoService.listTodos();
 

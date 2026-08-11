@@ -28,16 +28,36 @@ class TodoRepository {
     };
   }
 
-  async list(query = {}) {
+  async list(params = {}) {
+    const { q, completed, status, page = 1, limit = 20, sort = 'desc' } = params;
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(parseInt(limit, 10) || 20, 100);
+    const skip = (pageNum - 1) * limitNum;
+    const sortOrder = sort === 'asc' ? 1 : -1;
+
     if (!this.isDatabaseReady()) {
-      const filter = { ...query };
-      return this.fallbackTodos
-        .filter((todo) => Object.entries(filter).every(([key, value]) => todo[key] === value))
-        .sort((left, right) => right.createdDate - left.createdDate);
+      let results = [...this.fallbackTodos];
+      if (q) results = results.filter((t) => t.title.toLowerCase().includes(q.toLowerCase()));
+      if (completed !== undefined) {
+        const bool = completed === 'true' || completed === true;
+        results = results.filter((t) => t.completed === bool);
+      }
+      if (status) results = results.filter((t) => t.status === status);
+      results.sort((a, b) => sortOrder * (a.createdDate - b.createdDate));
+      const total = results.length;
+      return { items: results.slice(skip, skip + limitNum), total };
     }
 
-    const filter = { ...query };
-    return Todo.find(filter).sort({ createdDate: -1 });
+    const filter = {};
+    if (q) filter.title = { $regex: q, $options: 'i' };
+    if (completed !== undefined) filter.completed = completed === 'true' || completed === true;
+    if (status) filter.status = status;
+
+    const [items, total] = await Promise.all([
+      Todo.find(filter).sort({ createdDate: sortOrder }).skip(skip).limit(limitNum),
+      Todo.countDocuments(filter)
+    ]);
+    return { items, total };
   }
 
   async getById(id) {
