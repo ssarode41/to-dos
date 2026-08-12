@@ -1,27 +1,29 @@
 import { useEffect, useState } from 'react';
 import { getTodos, createTodo, updateTodo, deleteTodo, completeTodo } from '../api/todoApi';
 
-export function useTodos() {
+export function useTodos(params = {}) {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchTodos = async () => {
-    setLoading(true);
-    try {
-      const response = await getTodos();
-      setTodos(response.data || []);
-      setError('');
-    } catch (err) {
-      setError('Unable to load todos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const paramsKey = JSON.stringify(params);
 
   useEffect(() => {
+    const fetchTodos = async () => {
+      setLoading(true);
+      try {
+        const response = await getTodos(JSON.parse(paramsKey));
+        const data = response.data;
+        setTodos(Array.isArray(data) ? data : (data?.items || []));
+        setError('');
+      } catch (err) {
+        setError('Unable to load todos');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTodos();
-  }, []);
+  }, [paramsKey]);
 
   const addTodo = async (payload) => {
     try {
@@ -67,5 +69,5 @@ export function useTodos() {
     }
   };
 
-  return { todos, loading, error, addTodo, editTodo, removeTodo, markComplete, refresh: fetchTodos };
+  return { todos, loading, error, addTodo, editTodo, removeTodo, markComplete };
 }

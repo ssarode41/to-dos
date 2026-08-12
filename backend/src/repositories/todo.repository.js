@@ -20,6 +20,7 @@ class TodoRepository {
       priority: payload.priority || 'MEDIUM',
       status: payload.status || 'OPEN',
       category: payload.category || 'GENERAL',
+      dueDate: payload.dueDate || null,
       completed: Boolean(payload.completed),
       createdBy: payload.createdBy || 'admin',
       createdDate: now,
@@ -28,15 +29,58 @@ class TodoRepository {
     };
   }
 
+  _reset() {
+    this.fallbackTodos = [];
+    this.fallbackId = 1;
+  }
+
   async list(query = {}) {
+    const { q, completed, priority, category, page, limit } = query;
+
     if (!this.isDatabaseReady()) {
-      const filter = { ...query };
-      return this.fallbackTodos
-        .filter((todo) => Object.entries(filter).every(([key, value]) => todo[key] === value))
-        .sort((left, right) => right.createdDate - left.createdDate);
+      let result = [...this.fallbackTodos];
+
+      if (q) {
+        const lower = q.toLowerCase();
+        result = result.filter((t) => t.title.toLowerCase().includes(lower));
+      }
+      if (completed !== undefined) {
+        result = result.filter((t) => t.completed === completed);
+      }
+      if (priority) {
+        result = result.filter((t) => t.priority === priority);
+      }
+      if (category) {
+        result = result.filter((t) => t.category === category);
+      }
+
+      result.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+
+      if (page !== undefined && limit !== undefined && limit > 0) {
+        const total = result.length;
+        const skip = page * limit;
+        const items = result.slice(skip, skip + limit);
+        return { items, page, limit, total };
+      }
+
+      return result;
     }
 
-    const filter = { ...query };
+    const filter = {};
+    if (q) filter.title = { $regex: q, $options: 'i' };
+    if (completed !== undefined) filter.completed = completed;
+    if (priority) filter.priority = priority;
+    if (category) filter.category = category;
+
+    if (page !== undefined && limit !== undefined && limit > 0) {
+      const skip = page * limit;
+      const [items, total] = await Promise.all([
+        Todo.find(filter).sort({ createdDate: -1 }).skip(skip).limit(limit),
+        Todo.countDocuments(filter)
+      ]);
+      return { items, page, limit, total };
+    }
+
     return Todo.find(filter).sort({ createdDate: -1 });
   }
 
