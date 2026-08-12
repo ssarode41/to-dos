@@ -6,5 +6,14 @@
   "api": {
     "title": "Playwright API todo",
     "description": "Created by Playwright API test"
+  },
+  "dashboard": {
+    "search": {
+      "query": "Playwright"
+    },
+    "filter": {
+      "open": "open",
+      "done": "done"
+    }
   }
 }
